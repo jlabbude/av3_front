@@ -1,0 +1,9 @@
+[build]
+dist = "dist"
+
+[serve]
+port = 8000
+
+[[copy]]
+source = "static"
+destination = "dist/static"
