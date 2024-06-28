@@ -1,9 +1,2 @@
-[build]
-dist = "dist"
-
-[serve]
-port = 8000
-
-[[copy]]
-source = "static"
-destination = "dist/static"
+[watch]
+watch = ["src", "index.html"]
