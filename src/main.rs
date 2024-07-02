@@ -1,4 +1,5 @@
 use futures::channel::oneshot;
+use geojson::{FeatureCollection, GeoJson};
 use log::*;
 use mapboxgl::{
     event, LngLat, Map, MapEventListener, MapOptions, Marker, MarkerEventListener, MarkerOptions,
@@ -50,31 +51,69 @@ impl MapEventListener for Listener {
 
         let url = format!(
             "http://localhost:8080/data?x={}&y={}",
-            lng_lat.lng.round(), lng_lat.lat.round()
+            lng_lat.lng.round(),
+            lng_lat.lat.round()
         );
 
         spawn_local(async move {
             let response = reqwest::get(&url).await.unwrap();
-            let data = response.text().await.unwrap();
-
-            web_sys::window()
-                .unwrap()
-                .document()
-                .unwrap()
-                .get_element_by_id("features")
-                .expect("Element \"features\" not found")
-                .set_inner_html(&data);
+            let _data = response.text().await.unwrap();
         });
     }
 
-    fn on_load(&mut self, _map: Rc<Map>, _e: event::MapBaseEvent) {
+    fn on_load(&mut self, m: Rc<Map>, _e: event::MapBaseEvent) {
         self.tx.take().unwrap().send(()).unwrap();
+
+        let map2 = m.clone();
+        m.load_image("http://localhost:8080/pollution", move |res| {
+            if let Ok(image) = res {
+                info!("image loaded: {:?}", &image.inner);
+
+                map2.add_image("pollution", image, mapboxgl::ImageOptions::default())
+                    .unwrap();
+                info!("image added");
+
+                map2.add_geojson_source(
+                    "pollutionpol",
+                    GeoJson::FeatureCollection(FeatureCollection {
+                        bbox: None,
+                        foreign_members: None,
+                        features: vec![geojson::Feature {
+                            bbox: None,
+                            geometry: Some(geojson::Geometry::new(
+                                geojson::Value::Polygon(vec![vec![
+                                    vec![-180.0, -90.0],
+                                    vec![180.0, -90.0],
+                                    vec![180.0, 90.0],
+                                    vec![-180.0, 90.0],
+                                    vec![-180.0, -90.0],
+                                ]]),
+                            )),
+                            id: None,
+                            properties: None,
+                            foreign_members: None,
+                        }],
+                    }),
+                )
+                    .unwrap();
+                info!("source added");
+
+                map2.add_layer(&mapboxgl::Layer {
+                    id: "polid".into(),
+                    r#type: "fill".into(),
+                    source: "pollutionpol".into(),
+                    paint: None,
+                    layout: None,
+                })
+                    .unwrap();
+                info!("layer added");
+            }
+        });
     }
 }
 
 impl MarkerListener {
     async fn fetch_components(m: Rc<Marker>) -> Result<ApiResponse, Error> {
-
         let lnglat = m.get_lnglat();
         let url = format!(
             "http://localhost:8080/data?x={}&y={}",
@@ -95,7 +134,6 @@ impl MarkerEventListener for MarkerListener {
         values.set_attribute("style", "display: block;").unwrap();
         spawn_local(async move {
             if let Ok(api) = MarkerListener::fetch_components(m).await {
-
                 let components = &api.list[0].components;
 
                 values.set_inner_html(&format!(
@@ -104,7 +142,7 @@ impl MarkerEventListener for MarkerListener {
                 ));
 
                 info!("dragend: {:?}", components);
-            } else{
+            } else {
                 info!("Failed to fetch components");
             }
         });
