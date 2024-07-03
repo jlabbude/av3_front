@@ -1,5 +1,4 @@
 use futures::channel::oneshot;
-use geojson::{FeatureCollection, GeoJson};
 use log::*;
 use mapboxgl::{
     event, LngLat, Map, MapEventListener, MapOptions, Marker, MarkerEventListener, MarkerOptions,
@@ -72,42 +71,7 @@ impl MapEventListener for Listener {
                 map2.add_image("pollution", image, mapboxgl::ImageOptions::default())
                     .unwrap();
                 info!("image added");
-
-                map2.add_geojson_source(
-                    "pollutionpol",
-                    GeoJson::FeatureCollection(FeatureCollection {
-                        bbox: None,
-                        foreign_members: None,
-                        features: vec![geojson::Feature {
-                            bbox: None,
-                            geometry: Some(geojson::Geometry::new(
-                                geojson::Value::Polygon(vec![vec![
-                                    vec![-180.0, -90.0],
-                                    vec![180.0, -90.0],
-                                    vec![180.0, 90.0],
-                                    vec![-180.0, 90.0],
-                                    vec![-180.0, -90.0],
-                                ]]),
-                            )),
-                            id: None,
-                            properties: None,
-                            foreign_members: None,
-                        }],
-                    }),
-                )
-                    .unwrap();
-                info!("source added");
-
-                map2.add_layer(&mapboxgl::Layer {
-                    id: "polid".into(),
-                    r#type: "fill".into(),
-                    source: "pollutionpol".into(),
-                    paint: None,
-                    layout: None,
-                })
-                    .unwrap();
-                info!("layer added");
-            }
+            };
         });
     }
 }
