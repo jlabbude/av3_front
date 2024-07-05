@@ -1,5 +1,0 @@
-[watch]
-watch = ["src", "index.html"]
-
-[serve]
-port = 8000
